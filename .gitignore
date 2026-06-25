@@ -1,39 +1,51 @@
-### IDE ###
-.idea/
-.vscode/
+### IntelliJ IDEA ###
 out/
+!run/main/
+!/src/main//out/
+!/src/test//out/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 bin/
+!/src/main//bin/
+!/src/test//bin/
 
-### Gradle ###
-.gradle/
-build/
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
 
-### Runtime / Minecraft / Fabric ###
-run/
-workspace/
-artifacts/
+### VS Code ###
+.vscode/
 
-### yGuard temp ###
-_yguardtmp/
-
-### Logs / temp ###
-*.log
-*.gz
-*.tmp
-*.bak
-
-### Archives ###
-*.zip
-*.rar
-*.7z
-
-### Compiled ###
-*.class
-
-### OS ###
+### Mac OS ###
 .DS_Store
-Thumbs.db
-
-### Local secrets/config ###
-local.properties
-.env
+/workspace/assets
+/workspace/imgui.ini
+/workspace/logs
+/workspace/ide
+/.gradle/
+/artifacts/
+/.idea/
+/build/
+/run/
+/run/main/
+/run/logs/
+/run/.fabric/
+/.idea/
+.idea/
+run/main/files/autoCfg.json
+.idea/workspace.xml
+*.txt
+*.gz
+*.log
+*.mca
+*.mca
