@@ -1,0 +1,342 @@
+{
+  "gui_open": {
+    "sounds": [
+      "minecraft:gui_open"
+    ]
+  },
+  "gui_close": {
+    "sounds": [
+      "minecraft:gui_close"
+    ]
+  },
+  "module_enable": {
+    "sounds": [
+      "minecraft:module_enable"
+    ]
+  },
+  "module_disable": {
+    "sounds": [
+      "minecraft:module_disable"
+    ]
+  },
+  "module_enable_client1": {
+    "sounds": [
+      "minecraft:module_enable_client1"
+    ]
+  },
+  "module_disable_client1": {
+    "sounds": [
+      "minecraft:module_disable_client1"
+    ]
+  },
+  "enable": {
+    "sounds": [
+      "minecraft:enable"
+    ]
+  },
+  "disable": {
+    "sounds": [
+      "minecraft:disable"
+    ]
+  },
+  "enable1": {
+    "sounds": [
+      "minecraft:enable1"
+    ]
+  },
+  "disable1": {
+    "sounds": [
+      "minecraft:disable1"
+    ]
+  },
+  "enable2": {
+    "sounds": [
+      "minecraft:enable2"
+    ]
+  },
+  "disable2": {
+    "sounds": [
+      "minecraft:disable2"
+    ]
+  },
+  "enable3": {
+    "sounds": [
+      "minecraft:enable3"
+    ]
+  },
+  "disable3": {
+    "sounds": [
+      "minecraft:disable3"
+    ]
+  },
+  "category_click": {
+    "sounds": [
+      "minecraft:guicategory_select"
+    ]
+  },
+  "kolokolnia_kill": {
+    "sounds": [
+      "minecraft:kolokolnia_kill"
+    ]
+  },
+  "itachi": {
+    "sounds": [
+      "minecraft:itachi"
+    ]
+  },
+  "naruto_shadow_clones": {
+    "sounds": [
+      "minecraft:naruto_shadow_clones"
+    ]
+  },
+  "bell": {
+    "sounds": [
+      "minecraft:bell"
+    ]
+  },
+  "crime": {
+    "sounds": [
+      "minecraft:crime"
+    ]
+  },
+  "nya": {
+    "sounds": [
+      "minecraft:nya"
+    ]
+  },
+  "skeet": {
+    "sounds": [
+      "minecraft:skeet"
+    ]
+  },
+  "uwu": {
+    "sounds": [
+      "minecraft:uwu"
+    ]
+  },
+  "1": {
+    "sounds": [
+      "minecraft:1"
+    ]
+  },
+  "11": {
+    "sounds": [
+      "minecraft:11"
+    ]
+  },
+  "222": {
+    "sounds": [
+      "minecraft:222"
+    ]
+  },
+  "333": {
+    "sounds": [
+      "minecraft:333"
+    ]
+  },
+  "444": {
+    "sounds": [
+      "minecraft:444"
+    ]
+  },
+  "52_s2bby3v": {
+    "sounds": [
+      "minecraft:52_s2bby3v"
+    ]
+  },
+  "555": {
+    "sounds": [
+      "minecraft:555"
+    ]
+  },
+  "ahah": {
+    "sounds": [
+      "minecraft:ahah"
+    ]
+  },
+  "ahoh": {
+    "sounds": [
+      "minecraft:ahoh"
+    ]
+  },
+  "aibla": {
+    "sounds": [
+      "minecraft:aibla"
+    ]
+  },
+  "am-am-am": {
+    "sounds": [
+      "minecraft:am-am-am"
+    ]
+  },
+  "anime-ahh_1": {
+    "sounds": [
+      "minecraft:anime-ahh_1"
+    ]
+  },
+  "apple-pay": {
+    "sounds": [
+      "minecraft:apple-pay"
+    ]
+  },
+  "araara": {
+    "sounds": [
+      "minecraft:araara"
+    ]
+  },
+  "bax": {
+    "sounds": [
+      "minecraft:bax"
+    ]
+  },
+  "bliaiaiat": {
+    "sounds": [
+      "minecraft:bliaiaiat"
+    ]
+  },
+  "bone-crack": {
+    "sounds": [
+      "minecraft:bone-crack"
+    ]
+  },
+  "burp": {
+    "sounds": [
+      "minecraft:burp"
+    ]
+  },
+  "cat": {
+    "sounds": [
+      "minecraft:cat"
+    ]
+  },
+  "chicken-on-tree-scr": {
+    "sounds": [
+      "minecraft:chicken-on-tree-scr"
+    ]
+  },
+  "eqed132": {
+    "sounds": [
+      "minecraft:eqed132"
+    ]
+  },
+  "grob": {
+    "sounds": [
+      "minecraft:grob"
+    ]
+  },
+  "hog-rider": {
+    "sounds": [
+      "minecraft:hog-rider"
+    ]
+  },
+  "kat": {
+    "sounds": [
+      "minecraft:kat"
+    ]
+  },
+  "mugi": {
+    "sounds": [
+      "minecraft:mugi"
+    ]
+  },
+  "nanax": {
+    "sounds": [
+      "minecraft:nanax"
+    ]
+  },
+  "ne-nado-diada": {
+    "sounds": [
+      "minecraft:ne-nado-diada"
+    ]
+  },
+  "oi-oi-oe-oi-a-eye-e": {
+    "sounds": [
+      "minecraft:oi-oi-oe-oi-a-eye-e"
+    ]
+  },
+  "pikmi": {
+    "sounds": [
+      "minecraft:pikmi"
+    ]
+  },
+  "posiobam": {
+    "sounds": [
+      "minecraft:posiobam"
+    ]
+  },
+  "pozovi": {
+    "sounds": [
+      "minecraft:pozovi"
+    ]
+  },
+  "sebalos-chudishche_buztiif": {
+    "sounds": [
+      "minecraft:sebalos-chudishche_buztiif"
+    ]
+  },
+  "ser-da-ser_o6s3ouc": {
+    "sounds": [
+      "minecraft:ser-da-ser_o6s3ouc"
+    ]
+  },
+  "spongebob-fail": {
+    "sounds": [
+      "minecraft:spongebob-fail"
+    ]
+  },
+  "stoniland": {
+    "sounds": [
+      "minecraft:stoniland"
+    ]
+  },
+  "suda": {
+    "sounds": [
+      "minecraft:suda"
+    ]
+  },
+  "tuco-get-out": {
+    "sounds": [
+      "minecraft:tuco-get-out"
+    ]
+  },
+  "use_totem": {
+    "sounds": [
+      "minecraft:use_totem"
+    ]
+  },
+  "zxc": {
+    "sounds": [
+      "minecraft:zxc"
+    ]
+  },
+  "zxcghoul": {
+    "sounds": [
+      "minecraft:zxcghoul"
+    ]
+  },
+  "fluger": {
+    "sounds": [
+      "minecraft:fluger"
+    ]
+  },
+  "nuclear": {
+    "sounds": [
+      "minecraft:nuclear"
+    ]
+  },
+  "windows": {
+    "sounds": [
+      "minecraft:windows"
+    ]
+  },
+  "anti_crash_pickaxe_nuclear": {
+    "sounds": [
+      "minecraft:nuclear"
+    ]
+  },
+  "anti_crash_pickaxe_windows": {
+    "sounds": [
+      "minecraft:windows"
+    ]
+  }
+}

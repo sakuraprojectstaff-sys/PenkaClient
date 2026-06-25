@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "fun.rich.mixins.misc",
+  "refmap": "rich-refmap.json",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "LivingEntityTotemSoundMixin",
+    "HitSoundMixin",
+    "MixinCapeFeatureRenderer",
+    "MixinClientPlayerCape",
+    "MixinCapePartVisible",
+    "MixinClientPlayerInteractionManager",
+    "TotemTrackerMixin",
+    "ItemEntityRenderer",
+    "MixinHandledScreen",
+    "MixinAbstractClientPlayerEntity",
+    "MixinVanillaCapeFeatureRenderer",
+    "LivingEntityDeathMixin",
+    "EquipmentRendererMixin",
+    "ConnectScreenMixin",
+    "ClientConnection"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

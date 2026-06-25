@@ -1,0 +1,4 @@
+class:fun.rich.Rich=6625ee23b9c7d606397b7fe8341965a45ea4e4540f953cad0878a3f371cfda7f
+class:fun.rich.mixins.client.MinecraftClientMixin=9ee28f8541cfb36bbeee5c9bb54c1101e49a3ee6a364968c4458526a91dca71a
+class:fun.rich.features.impl.misc.TelegramBot=e4229799d1a49d324767c86c2e63669ac883c0995a0cc1329227531f4f99af92
+class:fun.rich.features.impl.render.Hud=0de0289581de73665db2d5e7295dd2a543aeffd6005ded6de75aff6fc4598bd2

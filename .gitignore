@@ -1,0 +1,39 @@
+### IDE ###
+.idea/
+.vscode/
+out/
+bin/
+
+### Gradle ###
+.gradle/
+build/
+
+### Runtime / Minecraft / Fabric ###
+run/
+workspace/
+artifacts/
+
+### yGuard temp ###
+_yguardtmp/
+
+### Logs / temp ###
+*.log
+*.gz
+*.tmp
+*.bak
+
+### Archives ###
+*.zip
+*.rar
+*.7z
+
+### Compiled ###
+*.class
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Local secrets/config ###
+local.properties
+.env

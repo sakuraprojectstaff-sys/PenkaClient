@@ -1,0 +1,837 @@
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
+import java.io.FileOutputStream
+import java.nio.file.StandardCopyOption
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.FieldNode
+import org.objectweb.asm.tree.FrameNode
+import org.objectweb.asm.tree.InsnList
+import org.objectweb.asm.tree.InsnNode
+import org.objectweb.asm.tree.IntInsnNode
+import org.objectweb.asm.tree.IincInsnNode
+import org.objectweb.asm.tree.JumpInsnNode
+import org.objectweb.asm.tree.LabelNode
+import org.objectweb.asm.tree.LdcInsnNode
+import org.objectweb.asm.tree.MethodInsnNode
+import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.TypeInsnNode
+import org.objectweb.asm.tree.VarInsnNode
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.ow2.asm:asm:9.9"
+        classpath "org.ow2.asm:asm-tree:9.9"
+    }
+}
+
+plugins {
+    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'maven-publish'
+    id("org.jetbrains.kotlin.jvm") version "2.0.21"
+}
+
+def httpTimeoutMs = (gradle.startParameter.projectProperties['httpTimeoutMs'] ?: '600000').toString()
+System.setProperty("org.gradle.internal.http.connectionTimeout", httpTimeoutMs)
+System.setProperty("org.gradle.internal.http.socketTimeout", httpTimeoutMs)
+System.setProperty("sun.net.client.defaultConnectTimeout", httpTimeoutMs)
+System.setProperty("sun.net.client.defaultReadTimeout", httpTimeoutMs)
+
+def protectProfileEnabled = (gradle.startParameter.projectProperties['protectProfile'] ?: 'false').toBoolean()
+def asmPassEnabled = (gradle.startParameter.projectProperties['asmPass'] ?: 'false').toBoolean()
+
+def cometVersion = (gradle.startParameter.projectProperties['cometVersion'] ?: '2.5-HOTFIX-1').toString()
+def cometMinecraftVersion = (gradle.startParameter.projectProperties['cometMinecraftVersion'] ?: project.minecraft_version).toString()
+def glTextureUtilsVersion = (gradle.startParameter.projectProperties['glTextureUtilsVersion'] ?: '1.7.4-HOTFIX-1').toString()
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenLocal()
+
+    maven {
+        name = "fabric"
+        url = "https://maven.fabricmc.net/"
+        content {
+            includeGroupByRegex("net\\.fabricmc(\\..*)?")
+        }
+    }
+
+    maven {
+        name = "meteor-maven-snapshots"
+        url = "https://maven.meteordev.org/snapshots"
+        content {
+            includeGroup("meteordevelopment")
+        }
+    }
+    maven {
+        name = "meteor-maven-releases"
+        url = "https://maven.meteordev.org/releases"
+        content {
+            includeGroup("meteordevelopment")
+        }
+    }
+
+    maven {
+        name = "babbaj-maven"
+        url = "https://babbaj.github.io/maven/"
+        content {
+            includeGroup("dev.babbaj")
+        }
+    }
+
+    maven {
+        name = "ferra13671-maven"
+        url = "https://ferra13671.github.io/maven/"
+        content {
+            includeGroup("com.ferra13671")
+        }
+    }
+
+    mavenCentral()
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/accesswidener")
+}
+
+configurations {
+    libImpl
+    modImpl
+    protectionTool
+    implementation.extendsFrom(libImpl)
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+
+    include(modImplementation('io.netty:netty-handler-proxy:4.1.82.Final'))
+    include(modImplementation('io.netty:netty-codec-socks:4.1.82.Final'))
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    libImpl("com.ferra13671:comet-renderer:${cometVersion}")
+    libImpl("com.ferra13671:gl-texture-utils:${glTextureUtilsVersion}")
+    libImpl("com.ferra13671:comet-renderer-minecraft:${cometMinecraftVersion}-fabric-${cometVersion}")
+    libImpl("com.ferra13671:comet-renderer-better-compiler:${cometVersion}")
+    libImpl("com.ferra13671:comet-renderer-better-exceptions:${cometVersion}")
+    libImpl("com.ferra13671:comet-renderer-post-effects:${cometVersion}")
+
+    implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: '3.1.8'
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    modCompileOnly "meteordevelopment:baritone:1.21.4-SNAPSHOT"
+    modRuntimeOnly "meteordevelopment:baritone:1.21.4-SNAPSHOT"
+    modRuntimeOnly "dev.babbaj:nether-pathfinder:1.6"
+
+    libImpl fileTree(dir: 'libs', include: ['*.jar'], exclude: [
+            'satin*.jar',
+            'asm*.jar',
+            'asm-*.jar',
+            'byte-buddy*.jar',
+            'classgraph*.jar',
+            'yguard*.jar'
+    ])
+
+    libImpl("dev.redstones.mediaplayerinfo:media-player-info:0.1.0")
+    libImpl("net.java.dev.jna:jna:5.13.0")
+    libImpl("net.java.dev.jna:jna-platform:5.13.0")
+
+    libImpl("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+    libImpl("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21")
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+    modImplementation 'org.java-websocket:Java-WebSocket:1.5.6'
+    modImplementation 'com.github.oshi:oshi-core:6.4.0'
+
+    implementation("org.tensorflow:tensorflow-core-api:1.1.0")
+    runtimeOnly("org.tensorflow:tensorflow-core-native:1.1.0")
+
+    protectionTool "com.yworks:yguard:4.1.1"
+
+    protectionTool "org.ow2.asm:asm:9.9.1"
+    protectionTool "org.ow2.asm:asm-tree:9.9.1"
+    protectionTool "org.ow2.asm:asm-commons:9.9.1"
+    protectionTool "org.ow2.asm:asm-util:9.9.1"
+    protectionTool "org.ow2.asm:asm-analysis:9.9.1"
+
+    protectionTool "io.github.classgraph:classgraph:4.8.184"
+
+    protectionTool "net.bytebuddy:byte-buddy:1.18.5"
+    protectionTool "net.bytebuddy:byte-buddy-agent:1.18.5"
+
+    configurations.libImpl.dependencies.each { implementation(it) }
+    configurations.modImpl.dependencies.each { modImplementation(it) include(it) }
+}
+
+processResources {
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    withSourcesJar()
+}
+
+tasks.matching { it.name == "sourcesJar" }.configureEach {
+    onlyIf { !protectProfileEnabled }
+}
+
+compileKotlin {
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+    from {
+        configurations.libImpl.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude("org/objectweb/asm/**")
+    exclude("META-INF/versions/**/org/objectweb/asm/**")
+    exclude("net/bytebuddy/**")
+    exclude("META-INF/versions/**/net/bytebuddy/**")
+    exclude("io/github/classgraph/**")
+    exclude("oshi/**")
+    exclude("oshi.properties")
+    exclude("oshi*.properties")
+    exclude("**/oshi*.properties")
+    exclude("com/sun/jna/**")
+    exclude("META-INF/versions/**/com/sun/jna/**")
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
+
+def remapJarTask = tasks.named("remapJar")
+def yGuardJarFile = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}-yguard.jar")
+def finalProtectedJarFile = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}-protected.jar")
+
+def yGuardKeepClassPatterns = [
+        "net.**",
+        "com.**",
+        "org.**",
+        "io.**",
+        "dev.**",
+        "kotlin.**",
+        "kotlinx.**",
+        "javax.**",
+        "sun.**",
+        "meteordevelopment.**",
+        "antidaunleak.**",
+        "*.**Mixin",
+        "*.**Accessor",
+        "*.**Invoker",
+        "fun.rich.mixin.**",
+        "rich.mixin.**",
+        "fun.rich.mixins.**",
+        "rich.mixins.**",
+        "fun.rich.utils.**",
+        "rich.utils.**",
+        "fun.rich.utils.client.**",
+        "rich.utils.client.**",
+        "fun.rich.utils.client.window.**",
+        "rich.utils.client.window.**",
+        "fun.rich.utils.client.managers.file.**",
+        "rich.utils.client.managers.file.**",
+        "fun.rich.display.**",
+        "rich.display.**",
+        "fun.rich.events.**",
+        "rich.events.**",
+        "fun.rich.features.module.**",
+        "rich.features.module.**",
+        "fun.rich.features.module.setting.**",
+        "rich.features.module.setting.**",
+        "fun.rich.features.impl.render.**",
+        "rich.features.impl.render.**",
+        "fun.rich.features.impl.misc.**",
+        "rich.features.impl.misc.**",
+        "fun.rich.features.impl.combat.**",
+        "rich.features.impl.combat.**",
+        "fun.rich.features.impl.movement.**",
+        "rich.features.impl.movement.**",
+        "fun.rich.features.impl.player.**",
+        "rich.features.impl.player.**",
+        "fun.rich.common.**",
+        "rich.common.**",
+        "fun.rich.common.config.**",
+        "rich.common.config.**",
+        "fun.rich.command.**",
+        "rich.command.**",
+        "fun.rich.commands.**",
+        "rich.commands.**"
+]
+
+def yGuardKeepPackagePatterns = [
+        "net.**",
+        "com.**",
+        "org.**",
+        "io.**",
+        "dev.**",
+        "kotlin.**",
+        "kotlinx.**",
+        "javax.**",
+        "sun.**",
+        "meteordevelopment.**",
+        "antidaunleak.**",
+        "fun.rich.mixin.**",
+        "rich.mixin.**",
+        "fun.rich.mixins.**",
+        "rich.mixins.**",
+        "fun.rich.utils.**",
+        "rich.utils.**",
+        "fun.rich.utils.client.**",
+        "rich.utils.client.**",
+        "fun.rich.utils.client.window.**",
+        "rich.utils.client.window.**",
+        "fun.rich.utils.client.managers.file.**",
+        "rich.utils.client.managers.file.**",
+        "fun.rich.display.**",
+        "rich.display.**",
+        "fun.rich.events.**",
+        "rich.events.**",
+        "fun.rich.features.module.**",
+        "rich.features.module.**",
+        "fun.rich.features.module.setting.**",
+        "rich.features.module.setting.**",
+        "fun.rich.features.impl.render.**",
+        "rich.features.impl.render.**",
+        "fun.rich.features.impl.misc.**",
+        "rich.features.impl.misc.**",
+        "fun.rich.features.impl.combat.**",
+        "rich.features.impl.combat.**",
+        "fun.rich.features.impl.movement.**",
+        "rich.features.impl.movement.**",
+        "fun.rich.features.impl.player.**",
+        "rich.features.impl.player.**",
+        "fun.rich.common.**",
+        "rich.common.**",
+        "fun.rich.common.config.**",
+        "rich.common.config.**",
+        "fun.rich.command.**",
+        "rich.command.**",
+        "fun.rich.commands.**",
+        "rich.commands.**"
+]
+
+def yGuardKeepExactClasses = [
+        "fun.rich.Rich",
+        "rich.Rich",
+        "fun.rich.Main",
+        "rich.Main",
+        "fun.rich.mixins.client.MinecraftClientMixin",
+        "rich.mixins.client.MinecraftClientMixin",
+        "fun.rich.features.impl.misc.TelegramBot",
+        "rich.features.impl.misc.TelegramBot",
+        "fun.rich.features.impl.render.Hud",
+        "rich.features.impl.render.Hud",
+        "fun.rich.features.impl.combat.Aura",
+        "rich.features.impl.combat.Aura"
+].findAll { it != null && !it.trim().isEmpty() }
+
+def asmTargetPrefixes = [
+        "fun/rich/",
+        "rich/"
+]
+
+def asmExcludedPrefixes = [
+        "fun/rich/mixin/",
+        "rich/mixin/",
+        "fun/rich/mixins/",
+        "rich/mixins/",
+        "net/",
+        "com/",
+        "org/",
+        "io/",
+        "dev/",
+        "kotlin/",
+        "kotlinx/",
+        "javax/",
+        "sun/",
+        "meteordevelopment/",
+        "antidaunleak/"
+]
+
+def asmStringMinLen = 6
+def asmStringMaxLen = 4096
+
+def shouldAsmTransformClassEntry = { String entryName ->
+    if (entryName == null || !entryName.endsWith(".class")) return false
+    if (!asmTargetPrefixes.any { entryName.startsWith(it) }) return false
+    if (asmExcludedPrefixes.any { entryName.startsWith(it) }) return false
+    true
+}
+
+def shouldSkipAsmString = { String s ->
+    if (s == null) return true
+    if (s.length() < asmStringMinLen || s.length() > asmStringMaxLen) return true
+    if (s.contains("\u0000")) return true
+    if (s.startsWith("http://") || s.startsWith("https://")) return true
+    if (s.contains("/") || s.contains("\\") || s.contains(".json") || s.contains(".png") || s.contains(".ogg")) return true
+    if (s.contains("(") || s.contains(")") || s.contains(";") || s.contains("Ljava/")) return true
+    if (s.contains(".") && (s.contains("fun.rich") || s.contains("rich.") || s.contains("net.minecraft") || s.contains("java."))) return true
+    false
+}
+
+def encodeAsmString = { String s, int seed ->
+    char[] a = s.toCharArray()
+    for (int i = 0; i < a.length; i++) {
+        a[i] = (char) (a[i] ^ seed ^ (i * 7 + 3))
+    }
+    new String(a)
+}
+
+def makeDecoderMethod = { int seed, String name ->
+    MethodNode m = new MethodNode(
+            Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+            name,
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            null,
+            null
+    )
+
+    def l0 = new LabelNode()
+    def l1 = new LabelNode()
+    def l2 = new LabelNode()
+    def l3 = new LabelNode()
+
+    m.instructions.add(l0)
+    m.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0))
+    m.instructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/String", "toCharArray", "()[C", false))
+    m.instructions.add(new VarInsnNode(Opcodes.ASTORE, 1))
+    m.instructions.add(new InsnNode(Opcodes.ICONST_0))
+    m.instructions.add(new VarInsnNode(Opcodes.ISTORE, 2))
+
+    m.instructions.add(l1)
+    m.instructions.add(new FrameNode(
+            Opcodes.F_APPEND,
+            2,
+            (["[C", Opcodes.INTEGER] as Object[]),
+            0,
+            null
+    ))
+
+    m.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2))
+    m.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1))
+    m.instructions.add(new InsnNode(Opcodes.ARRAYLENGTH))
+    m.instructions.add(new JumpInsnNode(Opcodes.IF_ICMPGE, l2))
+    m.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1))
+    m.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2))
+    m.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1))
+    m.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2))
+    m.instructions.add(new InsnNode(Opcodes.CALOAD))
+    m.instructions.add(new LdcInsnNode(seed))
+    m.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2))
+    m.instructions.add(new IntInsnNode(Opcodes.BIPUSH, 7))
+    m.instructions.add(new InsnNode(Opcodes.IMUL))
+    m.instructions.add(new InsnNode(Opcodes.ICONST_3))
+    m.instructions.add(new InsnNode(Opcodes.IADD))
+    m.instructions.add(new InsnNode(Opcodes.IXOR))
+    m.instructions.add(new InsnNode(Opcodes.IXOR))
+    m.instructions.add(new InsnNode(Opcodes.I2C))
+    m.instructions.add(new InsnNode(Opcodes.CASTORE))
+    m.instructions.add(new IincInsnNode(2, 1))
+    m.instructions.add(new JumpInsnNode(Opcodes.GOTO, l1))
+
+    m.instructions.add(l2)
+    m.instructions.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+    m.instructions.add(new TypeInsnNode(Opcodes.NEW, "java/lang/String"))
+    m.instructions.add(new InsnNode(Opcodes.DUP))
+    m.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1))
+    m.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/String", "<init>", "([C)V", false))
+    m.instructions.add(new InsnNode(Opcodes.ARETURN))
+    m.instructions.add(l3)
+
+    m.maxLocals = 3
+    m.maxStack = 6
+    m
+}
+
+def transformClassBytesAsm = { byte[] inputBytes, String entryName, int globalSeed ->
+    ClassReader cr = new ClassReader(inputBytes)
+    ClassNode cn = new ClassNode()
+    cr.accept(cn, 0)
+
+    int kindMask = Opcodes.ACC_INTERFACE | Opcodes.ACC_ANNOTATION | Opcodes.ACC_MODULE
+    if ((cn.access & kindMask) != 0) {
+        return inputBytes
+    }
+
+    cn.sourceFile = null
+    cn.sourceDebug = null
+
+    String owner = cn.name
+    int classSeed = Math.abs((globalSeed * 1103515245 + owner.hashCode() * 12345) as int)
+    classSeed = (classSeed % 251) + 1
+
+    String decoderName = "__p\$d"
+    while (cn.methods.any { it.name == decoderName && it.desc == "(Ljava/lang/String;)Ljava/lang/String;" }) {
+        decoderName = decoderName + "_"
+    }
+
+    boolean changed = false
+
+    cn.methods.each { MethodNode mn ->
+        if ((mn.access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) != 0) return
+        if (mn.instructions == null || mn.instructions.size() == 0) return
+        if (mn.name == "<init>" || mn.name == "<clinit>") return
+
+        def insns = mn.instructions.toArray()
+        insns.each { insn ->
+            if (insn instanceof LdcInsnNode) {
+                def cst = ((LdcInsnNode) insn).cst
+                if (cst instanceof String) {
+                    String s = (String) cst
+                    if (!shouldSkipAsmString(s)) {
+                        String encoded = encodeAsmString(s, classSeed)
+                        InsnList repl = new InsnList()
+                        repl.add(new LdcInsnNode(encoded))
+                        repl.add(new MethodInsnNode(
+                                Opcodes.INVOKESTATIC,
+                                owner,
+                                decoderName,
+                                "(Ljava/lang/String;)Ljava/lang/String;",
+                                false
+                        ))
+                        mn.instructions.insertBefore(insn, repl)
+                        mn.instructions.remove(insn)
+                        changed = true
+                    }
+                }
+            }
+        }
+    }
+
+    if (!changed) {
+        return inputBytes
+    }
+
+    if (!cn.fields.any { it.name == "__p\$seed" }) {
+        cn.fields.add(new FieldNode(
+                Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
+                "__p\$seed",
+                "I",
+                null,
+                classSeed
+        ))
+    }
+
+    cn.methods.add(makeDecoderMethod(classSeed, decoderName))
+
+    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS)
+    cn.accept(cw)
+    cw.toByteArray()
+}
+
+def transformJarAsm = { File inJar, File outJar ->
+    outJar.parentFile.mkdirs()
+    if (outJar.exists()) outJar.delete()
+
+    int globalSeed = (int) ((System.nanoTime() ^ inJar.length() ^ inJar.name.hashCode()) & 0x7fffffffL)
+    int classCount = 0
+    int changedCount = 0
+
+    JarFile jarFile = new JarFile(inJar)
+    Manifest manifest = jarFile.getManifest()
+    JarOutputStream jos = manifest != null ?
+            new JarOutputStream(new FileOutputStream(outJar), manifest) :
+            new JarOutputStream(new FileOutputStream(outJar))
+
+    try {
+        def entries = jarFile.entries()
+        while (entries.hasMoreElements()) {
+            def e = entries.nextElement()
+            String name = e.getName()
+
+            if (manifest != null && name.equalsIgnoreCase("META-INF/MANIFEST.MF")) {
+                continue
+            }
+
+            byte[] bytes = jarFile.getInputStream(e).bytes
+
+            if (shouldAsmTransformClassEntry(name)) {
+                classCount++
+                byte[] outBytes = transformClassBytesAsm(bytes, name, globalSeed)
+                if (!java.util.Arrays.equals(bytes, outBytes)) {
+                    changedCount++
+                }
+                bytes = outBytes
+            }
+
+            def newEntry = new java.util.jar.JarEntry(name)
+            if (e.time > 0) newEntry.setTime(e.time)
+            jos.putNextEntry(newEntry)
+            jos.write(bytes)
+            jos.closeEntry()
+        }
+
+        def mark = new java.util.jar.JarEntry("META-INF/pk-protect-stage3.dat")
+        jos.putNextEntry(mark)
+        jos.write(("seed=" + globalSeed + ";changed=" + changedCount + ";classes=" + classCount).getBytes("UTF-8"))
+        jos.closeEntry()
+    } finally {
+        try { jos.close() } catch (ignored) {}
+        try { jarFile.close() } catch (ignored) {}
+    }
+
+    [classCount: classCount, changedCount: changedCount]
+}
+
+def collectYGuardExternalFiles = { def remapTask ->
+    def files = new LinkedHashSet<File>()
+
+    def addAllFiles = { Collection<?> c ->
+        if (c == null) return
+        c.each { f ->
+            if (f instanceof File && f.exists()) {
+                files.add(f)
+            }
+        }
+    }
+
+    try {
+        if (remapTask != null && remapTask.hasProperty("classpath")) {
+            addAllFiles(remapTask.classpath.files)
+        }
+    } catch (ignored) {}
+
+    try { addAllFiles(sourceSets.main.compileClasspath.files) } catch (ignored) {}
+    try { addAllFiles(sourceSets.main.runtimeClasspath.files) } catch (ignored) {}
+
+    [
+            "minecraftLibraries",
+            "minecraftRuntimeLibraries",
+            "minecraftClientLibraries",
+            "modCompileClasspath",
+            "modRuntimeClasspath",
+            "compileClasspath",
+            "runtimeClasspath"
+    ].each { cfgName ->
+        try {
+            def cfg = configurations.findByName(cfgName)
+            if (cfg != null) addAllFiles(cfg.files)
+        } catch (ignored) {}
+    }
+
+    def candidateDirs = [
+            file("${rootDir}/.gradle/loom-cache"),
+            file("${rootDir}/.gradle"),
+            file("${gradle.gradleUserHomeDir}/caches/fabric-loom"),
+            file("${gradle.gradleUserHomeDir}/caches/fabric-loom-cache"),
+            file("${gradle.gradleUserHomeDir}/caches/modules-2/files-2.1/com.mojang"),
+            file("${gradle.gradleUserHomeDir}/caches/modules-2/files-2.1/net.fabricmc")
+    ].findAll { it.exists() }
+
+    candidateDirs.each { dir ->
+        fileTree(dir: dir, include: ["**/*.jar"]).files.each { f ->
+            if (f != null && f.exists()) {
+                files.add(f)
+            }
+        }
+    }
+
+    files
+}
+
+tasks.register("printProtectionToolClasspath") {
+    group = "protection"
+    doLast {
+        println(configurations.protectionTool.resolve().collect { it.absolutePath }.join(System.lineSeparator()))
+    }
+}
+
+tasks.register("yguardRelease") {
+    group = "protection"
+    dependsOn remapJarTask
+    onlyIf { protectProfileEnabled }
+
+    inputs.file(remapJarTask.flatMap { it.archiveFile })
+    outputs.file(yGuardJarFile)
+
+    doLast {
+        def remapTask = remapJarTask.get()
+        def inJar = remapTask.archiveFile.get().asFile
+        def outJar = yGuardJarFile.get().asFile
+        outJar.parentFile.mkdirs()
+        file(".yguard").mkdirs()
+
+        def externalFiles = collectYGuardExternalFiles(remapTask)
+        println("yGuard external classpath entries: ${externalFiles.size()}")
+
+        ant.taskdef(
+                name: "yguard",
+                classname: "com.yworks.yguard.YGuardTask",
+                classpath: configurations.protectionTool.asPath
+        )
+
+        ant.yguard {
+            inoutpair(in: inJar.absolutePath, out: outJar.absolutePath)
+
+            externalclasses {
+                path {
+                    externalFiles.each { f ->
+                        pathelement(location: f.absolutePath)
+                    }
+                }
+            }
+
+            attribute(
+                    name: "SourceFile,LineNumberTable,LocalVariableTable,LocalVariableTypeTable,Signature,InnerClasses,EnclosingMethod,MethodParameters,Exceptions,AnnotationDefault,RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,RuntimeVisibleParameterAnnotations,RuntimeInvisibleParameterAnnotations,RuntimeVisibleTypeAnnotations,RuntimeInvisibleTypeAnnotations,NestHost,NestMembers,Record,PermittedSubclasses"
+            ) {
+                patternset {
+                    include(name: "**.*")
+                }
+            }
+
+            rename(
+                    logfile: file(".yguard/rename-log.xml").absolutePath,
+                    replaceClassNameStrings: "true",
+                    scramble: "true"
+            ) {
+                property(name: "error-checking", value: "compatible")
+                property(name: "language-conformity", value: "compatible")
+                property(name: "overload-enabled", value: "false")
+                property(
+                        name: "expose-attributes",
+                        value: "SourceFile,LineNumberTable,LocalVariableTable,LocalVariableTypeTable,Signature,InnerClasses,EnclosingMethod,MethodParameters,Exceptions,AnnotationDefault,RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,RuntimeVisibleParameterAnnotations,RuntimeInvisibleParameterAnnotations,RuntimeVisibleTypeAnnotations,RuntimeInvisibleTypeAnnotations,NestHost,NestMembers,Record,PermittedSubclasses"
+                )
+
+                adjust(
+                        replaceContentPolicy: "lenient",
+                        replaceContentSeparator: ".",
+                        replacePathPolicy: "none"
+                ) {
+                    include(name: "fabric.mod.json")
+                    include(name: "*.mixins.json")
+                    include(name: "*.mixin.json")
+                    include(name: "**/*.mixins.json")
+                    include(name: "**/*.mixin.json")
+                    include(name: "**/*.refmap.json")
+                }
+
+                adjust(
+                        replaceContentPolicy: "none",
+                        replacePathPolicy: "lenient"
+                ) {
+                    include(name: "META-INF/services/**")
+                }
+
+                keep(
+                        sourcefile: "keep",
+                        linenumbertable: "keep",
+                        localvariabletable: "keep",
+                        localvariabletypetable: "keep",
+                        runtimevisibleannotations: "keep",
+                        runtimevisibleparameterannotations: "keep",
+                        runtimevisibletypeannotations: "keep",
+                        runtimeinvisibleannotations: "keep",
+                        runtimeinvisibleparameterannotations: "keep",
+                        runtimeinvisibletypeannotations: "keep"
+                ) {
+                    if (!yGuardKeepPackagePatterns.isEmpty()) {
+                        'package' {
+                            patternset {
+                                yGuardKeepPackagePatterns.each { p ->
+                                    include(name: p)
+                                }
+                            }
+                        }
+                    }
+
+                    if (!yGuardKeepClassPatterns.isEmpty()) {
+                        'class'(classes: "private", methods: "private", fields: "private") {
+                            patternset {
+                                yGuardKeepClassPatterns.each { p ->
+                                    include(name: p)
+                                }
+                            }
+                        }
+                    }
+
+                    if (!yGuardKeepExactClasses.isEmpty()) {
+                        'class'(classes: "private", methods: "private", fields: "private") {
+                            patternset {
+                                yGuardKeepExactClasses.each { p ->
+                                    include(name: p)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        println("yGuard jar: ${outJar.absolutePath}")
+    }
+}
+
+tasks.register("asmPassRelease") {
+    group = "protection"
+    dependsOn "yguardRelease"
+    onlyIf { protectProfileEnabled }
+
+    inputs.file(yGuardJarFile)
+    outputs.file(finalProtectedJarFile)
+
+    doLast {
+        def inJar = yGuardJarFile.get().asFile
+        def outJar = finalProtectedJarFile.get().asFile
+        outJar.parentFile.mkdirs()
+
+        if (!asmPassEnabled) {
+            java.nio.file.Files.copy(inJar.toPath(), outJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            println("ASM stage disabled (enable with -PasmPass=true)")
+            println("Protected jar: ${outJar.absolutePath}")
+            return
+        }
+
+        def result = transformJarAsm(inJar, outJar)
+        println("ASM stage changed classes: ${result.changedCount}/${result.classCount}")
+        println("ASM protected jar: ${outJar.absolutePath}")
+    }
+}
+
+tasks.register("protectRelease") {
+    group = "protection"
+    description = "Builds remapped Fabric jar and protects it with yGuard + custom ASM pass"
+    dependsOn "asmPassRelease"
+
+    doLast {
+        if (!protectProfileEnabled) {
+            throw new GradleException("Запусти с -PprotectProfile=true")
+        }
+        println("Protected jar: ${finalProtectedJarFile.get().asFile.absolutePath}")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {}
+}
